@@ -1,0 +1,92 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="config.css">
+</head>
+<body>
+  <div class="config-panel">
+    <h2>KeyStatusBar 配置</h2>
+
+    <div class="section">
+      <label>字体大小 <span class="value-display" id="fontSize-val">24pt</span></label>
+      <input type="range" id="fontSize" min="12" max="48" value="24">
+    </div>
+
+    <div class="section">
+      <label>字体颜色</label>
+      <div class="rgb-group">
+        <input type="color" id="fontColorPicker" class="color-picker" value="#ffffff" aria-label="字体颜色">
+        <span>R</span><input type="number" id="fontColorR" min="0" max="255" value="255">
+        <span>G</span><input type="number" id="fontColorG" min="0" max="255" value="255">
+        <span>B</span><input type="number" id="fontColorB" min="0" max="255" value="255">
+        <span class="swatch" id="fontColor-swatch"></span>
+      </div>
+    </div>
+
+    <div class="section">
+      <label>按键块间距 <span class="unit">px</span></label>
+      <input type="number" id="blockSpacing" min="0" max="50" value="4">
+    </div>
+
+    <div class="section">
+      <label>按键块背景色</label>
+      <div class="rgb-group">
+        <input type="color" id="blockBgColorPicker" class="color-picker" value="#3c3c3c" aria-label="按键块背景色">
+        <span>R</span><input type="number" id="blockBgColorR" min="0" max="255" value="60">
+        <span>G</span><input type="number" id="blockBgColorG" min="0" max="255" value="60">
+        <span>B</span><input type="number" id="blockBgColorB" min="0" max="255" value="60">
+        <span class="swatch" id="blockBgColor-swatch"></span>
+      </div>
+    </div>
+
+    <div class="section">
+      <label>状态条背景色</label>
+      <div class="rgb-group">
+        <input type="color" id="statusBarBgColorPicker" class="color-picker" value="#1e1e1e" aria-label="状态条背景色">
+        <span>R</span><input type="number" id="statusBarBgColorR" min="0" max="255" value="30">
+        <span>G</span><input type="number" id="statusBarBgColorG" min="0" max="255" value="30">
+        <span>B</span><input type="number" id="statusBarBgColorB" min="0" max="255" value="30">
+        <span class="swatch" id="statusBarBgColor-swatch"></span>
+      </div>
+    </div>
+
+    <div class="section">
+      <label>背景透明度 <span class="value-display" id="statusBarBgAlpha-val">80%</span></label>
+      <input type="range" id="statusBarBgAlpha" min="0" max="100" value="80">
+    </div>
+
+    <div class="section">
+      <label>内边距 <span class="unit">px</span></label>
+      <input type="number" id="padding" min="0" max="60" value="8">
+    </div>
+
+    <div class="section">
+      <label>边框颜色</label>
+      <div class="rgb-group">
+        <input type="color" id="borderColorPicker" class="color-picker" value="#646464" aria-label="边框颜色">
+        <span>R</span><input type="number" id="borderColorR" min="0" max="255" value="100">
+        <span>G</span><input type="number" id="borderColorG" min="0" max="255" value="100">
+        <span>B</span><input type="number" id="borderColorB" min="0" max="255" value="100">
+        <span class="swatch" id="borderColor-swatch"></span>
+      </div>
+    </div>
+
+    <div class="section">
+      <label>边框宽度 <span class="unit">px</span></label>
+      <input type="number" id="borderWidth" min="0" max="20" value="1">
+    </div>
+
+    <div class="section">
+      <label>宽度 <span class="unit">px</span></label>
+      <input type="number" id="width" min="50" max="2000" value="400">
+    </div>
+
+    <div class="section hint">
+      配置即时保存，关闭窗口即可。
+    </div>
+  </div>
+  <script src="config.js"></script>
+</body>
+</html>

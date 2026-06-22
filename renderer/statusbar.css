@@ -1,0 +1,65 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  overflow: hidden;
+  background: transparent;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+#statusbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: max-content;
+  min-width: var(--sb-width);
+  /* CSS custom properties -- set by JS from config */
+  padding: var(--sb-padding);
+  gap: var(--sb-spacing);
+  background-color: var(--sb-bg);
+  border: var(--sb-border-width) solid var(--sb-border-color);
+  border-radius: 4px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+#caps-indicator {
+  color: var(--sb-font-color);
+  font-size: var(--sb-font-size);
+  line-height: 1.2;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 3px;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  -webkit-app-region: drag;
+}
+
+#caps-indicator.caps-on {
+  opacity: 1;
+  background-color: var(--sb-block-bg);
+}
+
+#key-blocks {
+  display: flex;
+  align-items: center;
+  gap: var(--sb-spacing);
+}
+
+.key-block {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4em;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background-color: var(--sb-block-bg);
+  color: var(--sb-font-color);
+  font-size: var(--sb-font-size);
+  font-weight: bold;
+  line-height: 1.2;
+  text-align: center;
+  /* Individual key blocks should not be draggable */
+  -webkit-app-region: no-drag;
+}

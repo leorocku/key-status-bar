@@ -1,0 +1,41 @@
+{
+  "name": "keystatusbar",
+  "version": "1.0.0",
+  "description": "KeyStatusBar - Desktop Key Status Display",
+  "main": "main.js",
+  "scripts": {
+    "start": "start.bat",
+    "build": "electron-builder",
+    "postinstall": "node -e \"if(!require('fs').existsSync(process.env.TEMP+'/electron-temp/node_modules/electron')){console.log('Warning: electron must be installed separately. See README.')}\""
+  },
+  "build": {
+    "appId": "com.keystatusbar.app",
+    "productName": "KeyStatusBar",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "keyboard-hook.js",
+      "keymap.js",
+      "config-store.js",
+      "renderer/**/*"
+    ]
+  },
+  "dependencies": {
+    "koffi": "3.0.2",
+    "@koromix/koffi-win32-x64": "3.0.2"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0"
+  }
+}
