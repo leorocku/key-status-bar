@@ -4,6 +4,7 @@
   "description": "KeyStatusBar - Desktop Key Status Display",
   "main": "main.js",
   "scripts": {
+    "test": "node --test tests/*.test.js",
     "start": "start.bat",
     "build": "electron-builder",
     "postinstall": "node -e \"if(!require('fs').existsSync(process.env.TEMP+'/electron-temp/node_modules/electron')){console.log('Warning: electron must be installed separately. See README.')}\""
