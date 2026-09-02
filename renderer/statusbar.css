@@ -4,7 +4,7 @@ html, body {
   width: 100%;
   overflow: hidden;
   background: transparent;
-  -webkit-app-region: drag;
+  -webkit-app-region: no-drag;
   user-select: none;
 }
 
@@ -22,6 +22,7 @@ html, body {
   border-radius: 4px;
   font-weight: bold;
   white-space: nowrap;
+  -webkit-app-region: drag;
 }
 
 #caps-indicator {

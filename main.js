@@ -103,7 +103,8 @@ function createStatusBarWindow() {
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    resizable: false,
+    // frame:false already prevents edge-drag resizing; leaving resizable on
+    // keeps setBounds able to shrink the window when content shrinks.
     type: 'tool',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -214,7 +215,15 @@ ipcMain.handle('set-config', (_event, key, value) => {
 
 ipcMain.on('resize-window', (_event, { width, height }) => {
   if (statusBarWindow && !statusBarWindow.isDestroyed()) {
-    statusBarWindow.setSize(Math.ceil(width), Math.ceil(height));
+    // setBounds (keeping the top-left corner) shrinks reliably on transparent
+    // frameless windows; setSize can leave the old larger hit area behind.
+    const [x, y] = statusBarWindow.getPosition();
+    statusBarWindow.setBounds({
+      x,
+      y,
+      width: Math.max(1, Math.ceil(width)),
+      height: Math.max(1, Math.ceil(height)),
+    });
   }
 });
 

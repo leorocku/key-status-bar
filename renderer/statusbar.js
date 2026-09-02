@@ -19,11 +19,11 @@ function toRgba(color, alpha) {
   return 'rgba(' + clampByte(color.r) + ', ' + clampByte(color.g) + ', ' + clampByte(color.b) + ', ' + a + ')';
 }
 
-function resizeToContent() {
-  requestAnimationFrame(() => {
-    const rect = container.getBoundingClientRect();
+function syncWindowSize() {
+  const rect = container.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
     window.electronAPI.resizeWindow(rect.width, rect.height);
-  });
+  }
 }
 
 function applyConfig(config) {
@@ -38,8 +38,6 @@ function applyConfig(config) {
   root.style.setProperty('--sb-border-color', toRgb(config.borderColor));
   root.style.setProperty('--sb-border-width', config.borderWidth + 'px');
   root.style.setProperty('--sb-bg', toRgba(config.statusBarBgColor, config.statusBarBgAlpha));
-
-  resizeToContent();
 }
 
 function renderKeys(keys) {
@@ -54,21 +52,24 @@ function renderKeys(keys) {
     span.textContent = key.text;
     keyBlocks.appendChild(span);
   });
-
-  resizeToContent();
 }
 
 function updateCaps(capsOn) {
   capsIndicator.textContent = capsOn ? 'CAPS ON' : 'CAPS OFF';
   capsIndicator.classList.toggle('caps-on', capsOn);
   capsIndicator.classList.toggle('caps-off', !capsOn);
-  resizeToContent();
 }
 
 async function init() {
   const config = await window.electronAPI.getConfig();
   applyConfig(config);
   renderKeys(currentKeys);
+
+  // Keep the window sized to the visible container. ResizeObserver fires after
+  // layout settles, so measurements are always current, avoiding stale sizes
+  // that the old requestAnimationFrame approach could hit when content shrank.
+  const resizeObserver = new ResizeObserver(syncWindowSize);
+  resizeObserver.observe(container);
 
   window.electronAPI.onKeysUpdate((keys) => {
     renderKeys(keys);
