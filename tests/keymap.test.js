@@ -1,7 +1,7 @@
 // keymap.js 是纯函数模块：测试六级优先链与各层的 isModifier 契约
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { getKeyDisplay } = require('../keymap');
+const { getKeyDisplay } = require('../build/keymap');
 
 // 第 1 层：控制键 → 英文名，isModifier: true（控制键优先于 charCode 兜底）
 test('控制键显示英文名且为修饰键', () => {

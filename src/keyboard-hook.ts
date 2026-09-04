@@ -1,4 +1,4 @@
-﻿const koffi = require('koffi');
+import koffi from 'koffi';
 
 // Windows message constants
 const WH_KEYBOARD_LL = 13;
@@ -34,7 +34,7 @@ const GetAsyncKeyState = user32.func('GetAsyncKeyState', 'int16', ['int32']);
 const SystemParametersInfoW = user32.func('SystemParametersInfoW', 'bool', ['uint32', 'uint32', 'void *', 'uint32']);
 
 /** 注入一个 key-up 事件（自动纠错的强制释放）。返回是否注入成功。 */
-function injectKeyUp(vkCode) {
+export function injectKeyUp(vkCode: number): boolean {
   const input = {
     type: INPUT_KEYBOARD,
     u: { ki: { wVk: vkCode, wScan: 0, dwFlags: KEYEVENTF_KEYUP, time: 0, dwExtraInfo: 0 } },
@@ -48,12 +48,12 @@ function injectKeyUp(vkCode) {
 }
 
 /** 查询某虚拟键当前是否处于按下状态（供启动清理）。 */
-function isKeyHeld(vkCode) {
+export function isKeyHeld(vkCode: number): boolean {
   return (GetAsyncKeyState(vkCode) & 0x8000) !== 0;
 }
 
 /** 读系统重复延迟（毫秒）。失败返回 null，由调用方决定默认值。 */
-function getRepeatDelay() {
+export function getRepeatDelay(): number | null {
   try {
     const buf = Buffer.alloc(4);
     if (!SystemParametersInfoW(SPI_GETKEYBOARDDELAY, 0, buf, 0)) return null;
@@ -64,17 +64,25 @@ function getRepeatDelay() {
   }
 }
 
+export interface KeyboardHook {
+  start(): void;
+  stop(): void;
+}
+
+interface KeyboardHookOptions {
+  /** Called with boolean when Caps Lock toggles */
+  onCapsChange?: (capsOn: boolean) => void;
+}
+
 /**
  * Create a low-level keyboard hook using koffi + Win32 API.
  * Uses SetWindowsHookExW(WH_KEYBOARD_LL) to capture all keystrokes
  * and PeekMessageW in a polling loop to pump the message queue.
- *
- * @param {function} cb - Callback receiving { vkCode, scanCode, isKeyDown, charCode, isInjected }
- * @param {object} [opts] - Optional callbacks
- * @param {function} [opts.onCapsChange] - Called with boolean when Caps Lock toggles
- * @returns {{ start: function, stop: function }}
  */
-function createKeyboardHook(cb, opts) {
+export function createKeyboardHook(
+  cb: (event: KeyEventInfo) => void,
+  opts?: KeyboardHookOptions
+): KeyboardHook {
   // user32 与 INPUT 结构体在模块级已绑定
 
   // KBDLLHOOKSTRUCT: the keyboard event data structure
@@ -118,9 +126,9 @@ function createKeyboardHook(cb, opts) {
     'GetKeyState', 'int16', ['int32']
   );
 
-  let hookHandle = null;
-  let pumpInterval = null;
-  let lastCapsState = null;
+  let hookHandle: unknown = null;
+  let pumpInterval: NodeJS.Timeout | undefined;
+  let lastCapsState: boolean | null = null;
 
   return {
     start() {
@@ -131,7 +139,8 @@ function createKeyboardHook(cb, opts) {
       }
 
       // Register the JS callback as a native function pointer
-      const hookProc = koffi.register((nCode, wParam, lParam) => {
+      // 注意：hookProc 必须保持强引用——被 GC 后原生回调触发即崩溃
+      const hookProc = koffi.register((nCode: number, wParam: number, lParam: unknown) => {
         if (nCode >= 0) {
           // Decode the KBDLLHOOKSTRUCT from lParam pointer
           const ks = koffi.decode(lParam, KBDLLHOOKSTRUCT);
@@ -182,10 +191,8 @@ function createKeyboardHook(cb, opts) {
     },
 
     stop() {
-      if (pumpInterval) {
-        clearInterval(pumpInterval);
-        pumpInterval = null;
-      }
+      clearInterval(pumpInterval);
+      pumpInterval = undefined;
       if (hookHandle) {
         UnhookWindowsHookEx(hookHandle);
         hookHandle = null;
@@ -193,5 +200,3 @@ function createKeyboardHook(cb, opts) {
     }
   };
 }
-
-module.exports = { createKeyboardHook, injectKeyUp, isKeyHeld, getRepeatDelay };

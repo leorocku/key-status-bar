@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 
 const CONFIG_NAME = 'config.json';
-const STORE_PATH = require.resolve('../config-store');
+const STORE_PATH = require.resolve('../build/config-store');
 
 // 把 electron 解析成假模块：app.getPath('userData') → 指定目录
 function mockElectron(userDataDir) {
@@ -22,7 +22,7 @@ function mockElectron(userDataDir) {
 // 每个用例独立 require 一份全新的模块实例（模块级单例状态不互相污染）
 function freshStore() {
   delete require.cache[STORE_PATH];
-  return require('../config-store');
+  return require('../build/config-store');
 }
 
 function newTmpDir() {

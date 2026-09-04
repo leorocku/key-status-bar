@@ -1,6 +1,6 @@
-﻿const { contextBridge, ipcRenderer } = require('electron');
+import { contextBridge, ipcRenderer } from 'electron';
 
-contextBridge.exposeInMainWorld('electronAPI', {
+const api: ElectronAPI = {
   // Config CRUD
   getConfig: () => ipcRenderer.invoke('get-config'),
   setConfig: (key, value) => ipcRenderer.invoke('set-config', key, value),
@@ -34,4 +34,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeAllListeners: (channel) => {
     ipcRenderer.removeAllListeners(channel);
   }
-});
+};
+
+contextBridge.exposeInMainWorld('electronAPI', api);

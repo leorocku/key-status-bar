@@ -2,7 +2,7 @@
 // 验证一次性计时、续期门闩、续期同步语义、启停
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createAutoCorrect, MODIFIER_VKS } = require('../auto-correct');
+const { createAutoCorrect, MODIFIER_VKS } = require('../build/auto-correct');
 
 // 带虚拟时间的假计时器：计时器记录到期时刻，advance + fireDue 驱动
 function fakeClock() {

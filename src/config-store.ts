@@ -1,9 +1,9 @@
-﻿const fs = require('fs');
-const path = require('path');
-const { app } = require('electron');
-const EventEmitter = require('events');
+import fs from 'fs';
+import path from 'path';
+import { app } from 'electron';
+import EventEmitter from 'events';
 
-const DEFAULT_CONFIG = {
+export const DEFAULT_CONFIG: Config = {
   fontSize: 24,
   fontColor: { r: 255, g: 255, b: 255 },
   blockSpacing: 4,
@@ -21,13 +21,13 @@ const DEFAULT_CONFIG = {
   releaseFlashDuration: 2
 };
 
-let config = { ...DEFAULT_CONFIG };
+let config: Config = { ...DEFAULT_CONFIG };
 let configPath = '';
 const emitter = new EventEmitter();
 const SAVE_DEBOUNCE_MS = 3000;
-let saveTimer = null;
+let saveTimer: NodeJS.Timeout | undefined;
 
-function createConfigStore() {
+export function createConfigStore(): void {
   configPath = path.join(app.getPath('userData'), 'config.json');
   try {
     const data = fs.readFileSync(configPath, 'utf-8');
@@ -39,7 +39,7 @@ function createConfigStore() {
   }
 }
 
-function saveConfig() {
+function saveConfig(): void {
   try {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
   } catch (e) {
@@ -47,28 +47,26 @@ function saveConfig() {
   }
 }
 
-function scheduleSave() {
-  if (saveTimer) clearTimeout(saveTimer);
+function scheduleSave(): void {
+  clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveConfig();
-    saveTimer = null;
+    saveTimer = undefined;
   }, SAVE_DEBOUNCE_MS);
 }
 
-function flushSave() {
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-    saveTimer = null;
-  }
+export function flushSave(): void {
+  clearTimeout(saveTimer);
+  saveTimer = undefined;
   // createConfigStore() 尚未执行（如第二实例提前退出）时 configPath 为空，跳过
   if (configPath) saveConfig();
 }
 
-function getConfig() {
+export function getConfig(): Config {
   return { ...config };
 }
 
-function setConfig(key, value) {
+export function setConfig<K extends ConfigKey>(key: K, value: Config[K]): void {
   if (!(key in DEFAULT_CONFIG)) {
     console.error('Unknown config key:', key);
     return;
@@ -78,8 +76,6 @@ function setConfig(key, value) {
   emitter.emit('change', getConfig());
 }
 
-function onConfigChange(callback) {
+export function onConfigChange(callback: (config: Config) => void): void {
   emitter.on('change', callback);
 }
-
-module.exports = { createConfigStore, getConfig, setConfig, onConfigChange, flushSave, DEFAULT_CONFIG };

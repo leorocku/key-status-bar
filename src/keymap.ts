@@ -1,4 +1,4 @@
-﻿// Virtual Key Code constants (subset of WinUser.h)
+// Virtual Key Code constants (subset of WinUser.h)
 const VK_BACK = 0x08, VK_TAB = 0x09, VK_RETURN = 0x0D;
 const VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12;
 const VK_PAUSE = 0x13, VK_CAPITAL = 0x14, VK_ESCAPE = 0x1B;
@@ -17,7 +17,7 @@ const VK_LCONTROL = 0xA2, VK_RCONTROL = 0xA3;
 const VK_LMENU = 0xA4, VK_RMENU = 0xA5;
 
 // Control keys: keys without a visible printable character → English name
-const CONTROL_KEY_NAMES = {
+const CONTROL_KEY_NAMES: Record<number, string> = {
   [VK_BACK]: 'Backspace', [VK_TAB]: 'Tab', [VK_RETURN]: 'Enter',
   [VK_SHIFT]: 'Shift',    [VK_CONTROL]: 'Ctrl', [VK_MENU]: 'Alt',
   [VK_PAUSE]: 'Pause',    [VK_CAPITAL]: 'CapsLock', [VK_ESCAPE]: 'Esc',
@@ -35,7 +35,7 @@ const CONTROL_KEY_NAMES = {
 };
 
 // Numpad operators - produce characters, treated as non-modifier
-const NUMPAD_OPERATOR_NAMES = {
+const NUMPAD_OPERATOR_NAMES: Record<number, string> = {
   [VK_MULTIPLY]: '*', [VK_ADD]: '+', [VK_SEPARATOR]: ',',
   [VK_SUBTRACT]: '-', [VK_DECIMAL]: '.', [VK_DIVIDE]: '/',
 };
@@ -47,7 +47,7 @@ for (let i = 0; i < 24; i++) {
 
 // US QWERTY hardcoded unshifted character map (for Chinese keyboard layout)
 // This avoids MapVirtualKeyW returning shifted chars when Shift is held.
-const CHAR_KEY_MAP = {
+const CHAR_KEY_MAP: Record<number, string> = {
   // Letters A-Z (0x41-0x5A) → lowercase
   0x41: 'a', 0x42: 'b', 0x43: 'c', 0x44: 'd', 0x45: 'e',
   0x46: 'f', 0x47: 'g', 0x48: 'h', 0x49: 'i', 0x4A: 'j',
@@ -73,11 +73,10 @@ const CHAR_KEY_MAP = {
 
 /**
  * Map a virtual key code to its display representation.
- * @param {number} vkCode - Windows virtual key code
- * @param {number} charCode - Result from MapVirtualKeyW(vkCode, MAPVK_VK_TO_CHAR)
- * @returns {{ text: string, isModifier: boolean }}
+ * @param vkCode - Windows virtual key code
+ * @param charCode - Result from MapVirtualKeyW(vkCode, MAPVK_VK_TO_CHAR)
  */
-function getKeyDisplay(vkCode, charCode) {
+export function getKeyDisplay(vkCode: number, charCode: number): KeyDisplay {
   // 1. Check control keys (no printable character → English name)
   if (CONTROL_KEY_NAMES[vkCode] !== undefined) {
     return { text: CONTROL_KEY_NAMES[vkCode], isModifier: true };
@@ -109,5 +108,3 @@ function getKeyDisplay(vkCode, charCode) {
   // 6. Unknown key
   return { text: 'Key' + vkCode.toString(16).toUpperCase(), isModifier: true };
 }
-
-module.exports = { getKeyDisplay };

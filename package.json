@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "KeyStatusBar - Desktop Key Status Display",
   "author": "leorocku",
-  "main": "main.js",
+  "main": "build/main.js",
   "scripts": {
-    "test": "node --test tests/*.test.js",
-    "start": "start.bat",
-    "build": "electron-builder"
+    "compile": "tsc && node scripts/copy-assets.js",
+    "test": "npm run compile && node --test tests/*.test.js",
+    "start": "npm run compile && start.bat",
+    "build": "npm run compile && electron-builder"
   },
   "build": {
     "appId": "com.keystatusbar.app",
@@ -23,13 +24,7 @@
       "allowToChangeInstallationDirectory": true
     },
     "files": [
-      "main.js",
-      "preload.js",
-      "keyboard-hook.js",
-      "auto-correct.js",
-      "config-store.js",
-      "keymap.js",
-      "renderer/**/*"
+      "build/**/*"
     ]
   },
   "dependencies": {
@@ -37,7 +32,9 @@
     "@koromix/koffi-win32-x64": "3.0.2"
   },
   "devDependencies": {
+    "@types/node": "^26.4.1",
     "electron": "^31.0.0",
-    "electron-builder": "^24.13.0"
+    "electron-builder": "^24.13.0",
+    "typescript": "^5.9.3"
   }
 }
