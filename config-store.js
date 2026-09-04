@@ -15,7 +15,10 @@ const DEFAULT_CONFIG = {
   borderWidth: 1,
   width: 400,
   statusBarVisible: true,
-  windowPosition: null
+  windowPosition: null,
+  autoCorrectEnabled: true,
+  autoCorrectMultiplier: 0.5,
+  releaseFlashDuration: 2
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -57,7 +60,8 @@ function flushSave() {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
-  saveConfig();
+  // createConfigStore() 尚未执行（如第二实例提前退出）时 configPath 为空，跳过
+  if (configPath) saveConfig();
 }
 
 function getConfig() {

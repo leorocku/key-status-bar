@@ -1,7 +1,8 @@
 ﻿const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen } = require('electron');
 const path = require('path');
 const { createConfigStore, getConfig, setConfig, onConfigChange, flushSave } = require('./config-store');
-const { createKeyboardHook } = require('./keyboard-hook');
+const { createKeyboardHook, injectKeyUp, isKeyHeld, getRepeatDelay } = require('./keyboard-hook');
+const { createAutoCorrect } = require('./auto-correct');
 const { getKeyDisplay } = require('./keymap');
 
 // --- State ---
@@ -11,6 +12,8 @@ let tray = null;
 let keyboardHook = null;
 let pressedKeys = new Map();   // vkCode -> { text, isModifier, order }
 let keyOrderCounter = 0;
+let autoCorrect = null;
+let repeatDelayMs = 1000; // 重复延迟，启动时读一次；读不到用默认值
 
 // --- Tray Icon Generation ---
 function createTrayIconImage() {
@@ -137,7 +140,7 @@ function createConfigWindow() {
 
   configWindow = new BrowserWindow({
     width: 460,
-    height: 560,
+    height: 660,
     title: 'KeyStatusBar 配置',
     resizable: false,
     autoHideMenuBar: true,
@@ -187,6 +190,14 @@ function updateTrayMenu() {
       label: '配置面板...',
       click: () => createConfigWindow(),
     },
+    {
+      label: '自动纠错',
+      type: 'checkbox',
+      checked: config.autoCorrectEnabled,
+      click: (menuItem) => {
+        setConfig('autoCorrectEnabled', menuItem.checked);
+      },
+    },
     { type: 'separator' },
     {
       label: '退出',
@@ -235,8 +246,20 @@ function getSortedKeys() {
   return [...modifiers, ...chars];
 }
 
+function forceReleaseKey(vkCode) {
+  if (!injectKeyUp(vkCode)) return;
+  // 通知状态条做释放闪烁；注入的 key-up 稍后经钩子回流清除按键块
+  if (statusBarWindow && !statusBarWindow.isDestroyed()) {
+    const entry = pressedKeys.get(vkCode);
+    statusBarWindow.webContents.send('force-release', {
+      vkCode,
+      text: entry ? entry.text : getKeyDisplay(vkCode, 0).text,
+    });
+  }
+}
+
 function onKeyEvent(event) {
-  const { vkCode, isKeyDown, charCode } = event;
+  const { vkCode, isKeyDown, charCode, isInjected } = event;
   const display = getKeyDisplay(vkCode, charCode);
 
   if (isKeyDown) {
@@ -247,8 +270,11 @@ function onKeyEvent(event) {
         order: keyOrderCounter++,
       });
     }
+    // 注入事件只同步显示，不参与计时（ADR-0001）
+    if (!isInjected) autoCorrect.keyDown(vkCode);
   } else {
     pressedKeys.delete(vkCode);
+    autoCorrect.keyUp(vkCode);
   }
 
   // Push updated key list to status bar
@@ -265,11 +291,25 @@ app.whenReady().then(() => {
   // Create system tray
   createTray();
 
+  // 启动清理（Q4-B）：先于建窗与装钩——释放确实被按住的键，存量卡键当场解除。
+  // 此时钩子未装，注入的 up 不会回流进自己的事件处理。
+  for (let vk = 0; vk < 256; vk++) {
+    if (isKeyHeld(vk)) injectKeyUp(vk);
+  }
+
   // Create status bar if visible
   const config = getConfig();
   if (config.statusBarVisible) {
     createStatusBarWindow();
   }
+
+  // 自动纠错：重复延迟启动时读一次（Q6），乘数每次计时启动时读配置
+  repeatDelayMs = getRepeatDelay() || 1000;
+  autoCorrect = createAutoCorrect({
+    getDelay: () => getConfig().autoCorrectMultiplier * repeatDelayMs,
+    onForceRelease: forceReleaseKey,
+    enabled: config.autoCorrectEnabled,
+  });
 
   // Start global keyboard hook
   keyboardHook = createKeyboardHook(onKeyEvent, {
@@ -287,6 +327,7 @@ app.whenReady().then(() => {
       statusBarWindow.webContents.send('config-changed', newConfig);
     }
     updateTrayMenu();
+    autoCorrect.setEnabled(newConfig.autoCorrectEnabled);
   });
 });
 

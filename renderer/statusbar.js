@@ -3,6 +3,7 @@ const keyBlocks = document.getElementById('key-blocks');
 const container = document.getElementById('statusbar-container');
 
 let currentKeys = [];
+let currentConfig = null;
 
 function clampByte(value) {
   const number = Number(value);
@@ -28,6 +29,7 @@ function syncWindowSize() {
 
 function applyConfig(config) {
   const root = document.documentElement;
+  currentConfig = config;
 
   root.style.setProperty('--sb-width', config.width + 'px');
   root.style.setProperty('--sb-font-size', config.fontSize + 'pt');
@@ -42,9 +44,10 @@ function applyConfig(config) {
 
 function renderKeys(keys) {
   currentKeys = keys;
-  keyBlocks.innerHTML = '';
+  // 只清除普通键块；正在闪烁的强制释放幽灵块保留到超时自毁
+  keyBlocks.querySelectorAll('.key-block:not(.key-block-flash)').forEach((el) => el.remove());
 
-  keyBlocks.style.display = keys.length > 0 ? 'flex' : 'none';
+  keyBlocks.style.display = keys.length > 0 || keyBlocks.childElementCount > 0 ? 'flex' : 'none';
 
   keys.forEach((key) => {
     const span = document.createElement('span');
@@ -52,6 +55,17 @@ function renderKeys(keys) {
     span.textContent = key.text;
     keyBlocks.appendChild(span);
   });
+}
+
+function showForceRelease(info) {
+  const ghost = document.createElement('span');
+  ghost.className = 'key-block key-block-flash';
+  ghost.textContent = info.text;
+  keyBlocks.appendChild(ghost);
+  keyBlocks.style.display = 'flex';
+
+  const duration = ((currentConfig && currentConfig.releaseFlashDuration) || 2) * 1000;
+  setTimeout(() => ghost.remove(), duration);
 }
 
 function updateCaps(capsOn) {
@@ -77,6 +91,10 @@ async function init() {
 
   window.electronAPI.onCapsUpdate((capsOn) => {
     updateCaps(capsOn);
+  });
+
+  window.electronAPI.onForceRelease((info) => {
+    showForceRelease(info);
   });
 
   window.electronAPI.onConfigChange((newConfig) => {

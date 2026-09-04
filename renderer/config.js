@@ -117,6 +117,13 @@ function populateForm(config) {
   byId('statusBarBgAlpha').value = alphaPercent;
   updateValueDisplay('statusBarBgAlpha', alphaPercent, '%');
 
+  const multiplierPercent = Math.round(config.autoCorrectMultiplier * 100);
+  byId('autoCorrectMultiplier').value = multiplierPercent;
+  updateValueDisplay('autoCorrectMultiplier', multiplierPercent, '%');
+
+  byId('releaseFlashDuration').value = config.releaseFlashDuration;
+  updateValueDisplay('releaseFlashDuration', config.releaseFlashDuration, '秒');
+
   Object.keys(COLOR_FIELDS).forEach((key) => writeColor(key, config[key]));
 }
 
@@ -131,6 +138,18 @@ function attachNumberListeners() {
     const value = Math.max(0, Math.min(100, Number(byId('statusBarBgAlpha').value)));
     updateValueDisplay('statusBarBgAlpha', value, '%');
     debounce('statusBarBgAlpha', value / 100, 120);
+  });
+
+  byId('autoCorrectMultiplier').addEventListener('input', () => {
+    const value = Math.max(10, Math.min(100, Number(byId('autoCorrectMultiplier').value)));
+    updateValueDisplay('autoCorrectMultiplier', value, '%');
+    debounce('autoCorrectMultiplier', value / 100, 120);
+  });
+
+  byId('releaseFlashDuration').addEventListener('input', () => {
+    const value = Math.max(1, Math.min(5, Math.round(Number(byId('releaseFlashDuration').value))));
+    updateValueDisplay('releaseFlashDuration', value, '秒');
+    debounce('releaseFlashDuration', value, 120);
   });
 
   ['blockSpacing', 'padding', 'borderWidth'].forEach((key) => {
