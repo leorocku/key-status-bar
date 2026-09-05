@@ -1,3 +1,16 @@
+// main.ts
+//
+// Electron 入口。全部应用状态（窗口、托盘、按键 Map、自动纠错实例）集中在
+// 本模块——应用规模小，单点持有状态比分散管理更简单可靠。
+//
+// 数据流：keyboard-hook 回调 → onKeyEvent → pressedKeys Map →
+// IPC 'keys-update' → 状态条渲染。配置变更走 config-store 的 'change' 事件
+// 广播到状态条并重建托盘菜单。
+//
+// 生命周期顺序是纠错正确性的一部分（AGENTS.md 已知陷阱 7/8）：
+// whenReady 内必须先做启动清理（释放存量卡住的键）、再建窗装钩——顺序颠倒
+// 会让注入的 key-up 回流进自己的钩子形成反馈。注入事件在 onKeyEvent 用
+// isInjected 分流：只同步显示、不参与自动纠错计时（ADR-0001）。
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen } from 'electron';
 import path from 'path';
 import { createConfigStore, getConfig, setConfig, onConfigChange, flushSave } from './config-store';

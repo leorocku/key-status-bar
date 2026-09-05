@@ -1,3 +1,13 @@
+// config-store.ts
+//
+// 应用配置的唯一持久化层：JSON 文件存于 Electron userData 目录。
+// DEFAULT_CONFIG 是配置 schema 的运行时来源——新增字段必须同时改
+// types.d.ts 的 Config 接口（编译期契约），二者漂移不会被任何工具发现。
+//
+// 写盘是 3 秒 debounce：高频拖动滑动条不刷盘。代价是进程退出前必须
+// 调 flushSave()（main.ts 的 will-quit 已接），否则用户最后 3 秒的改动丢失。
+// setConfig 对未知 key 静默拒绝（仅 console.error）——调用方拿到的是
+// 无声失败，排查"配置不生效"先怀疑 key 拼写。
 import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';

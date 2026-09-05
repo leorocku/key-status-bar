@@ -1,3 +1,17 @@
+// keyboard-hook.ts
+//
+// 全部 koffi FFI / Win32 细节隔离在此，其他模块只见纯 JS 接口。
+// 本模块是状态条数据的唯一来源（WH_KEYBOARD_LL 全局钩子）——应用展示的是
+// 主机侧按键状态而非物理按键，这正是它诊断"卡住的键"的价值所在（见 CONTEXT.md）。
+// 绕过本模块的任何状态来源都会破坏这一诊断能力。
+//
+// 两个不能动的实现约束：
+// 1. koffi.register 返回的原生回调指针必须保持强引用（hookProc 局部变量被
+//    start() 闭包持有），否则 GC 后原生层再触发即崩溃。
+// 2. WH_KEYBOARD_LL 要求装钩线程持续泵消息，否则 Windows 静默摘除钩子——
+//    10ms setInterval + PeekMessageW 循环就是为此存在，不能删。
+//
+// 不纳入单测：依赖 Windows GUI 会话与全局钩子权限。
 import koffi from 'koffi';
 
 // Windows message constants

@@ -1,3 +1,11 @@
+// preload.ts
+//
+// contextBridge 白名单：renderer 与主进程之间的唯一通道。
+// 安全模型是 contextIsolation + nodeIntegration:false，renderer 永远不直接
+// 接触 ipcRenderer——每个暴露的方法就是一次显式授权，不要为省事加透传方法。
+//
+// 方法签名由 types.d.ts 的 ElectronAPI 接口约束（api 常量的类型标注），
+// 新增 IPC 通道必须同步改 main.ts handler、本文件、types.d.ts 三处。
 import { contextBridge, ipcRenderer } from 'electron';
 
 const api: ElectronAPI = {
