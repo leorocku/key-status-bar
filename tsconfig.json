@@ -7,7 +7,6 @@
     "outDir": "build",
     "rootDir": "src",
     "strict": true,
-    "useUnknownInCatchVariables": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,

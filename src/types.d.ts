@@ -65,16 +65,21 @@ interface ForceReleaseInfo {
   text: string;
 }
 
+/** 'resize-window' IPC 载荷：状态条请求窗口尺寸。 */
+interface ResizeRequest {
+  width: number;
+  height: number;
+}
+
 /** preload 暴露给 renderer 的 window.electronAPI 契约（唯一 IPC 出口）。 */
 interface ElectronAPI {
   getConfig(): Promise<Config>;
-  setConfig(key: string, value: ConfigValue): Promise<boolean>;
+  setConfig(key: ConfigKey, value: ConfigValue): Promise<boolean>;
   onKeysUpdate(callback: (keys: PressedKey[]) => void): void;
   onConfigChange(callback: (config: Config) => void): void;
   onCapsUpdate(callback: (capsOn: boolean) => void): void;
   onForceRelease(callback: (info: ForceReleaseInfo) => void): void;
   resizeWindow(width: number, height: number): void;
-  removeAllListeners(channel: string): void;
 }
 
 interface Window {

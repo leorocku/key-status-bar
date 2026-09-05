@@ -69,7 +69,7 @@ function createTrayIconImage(): Electron.NativeImage {
     return nativeImage.createFromBitmap(buf, { width: size, height: size });
   } catch (e) {
     // Fallback: create a simple colored square
-    console.error('createFromBitmap failed, using fallback icon:', e.message);
+    console.error('createFromBitmap failed, using fallback icon:', String(e));
     const fallback = Buffer.alloc(size * size * 4, 0);
     for (let y = 4; y <= 11; y++) {
       for (let x = 4; x <= 11; x++) {
@@ -232,7 +232,7 @@ ipcMain.handle('set-config', (_event, key: ConfigKey, value: ConfigValue) => {
   return true;
 });
 
-ipcMain.on('resize-window', (_event, { width, height }: { width: number; height: number }) => {
+ipcMain.on('resize-window', (_event, { width, height }: ResizeRequest) => {
   if (statusBarWindow && !statusBarWindow.isDestroyed()) {
     // setBounds (keeping the top-left corner) shrinks reliably on transparent
     // frameless windows; setSize can leave the old larger hit area behind.
@@ -336,7 +336,7 @@ app.whenReady().then(() => {
       statusBarWindow.webContents.send('config-changed', newConfig);
     }
     updateTrayMenu();
-    autoCorrect!.setEnabled(newConfig.autoCorrectEnabled);
+    if (autoCorrect) autoCorrect.setEnabled(newConfig.autoCorrectEnabled);
   });
 });
 

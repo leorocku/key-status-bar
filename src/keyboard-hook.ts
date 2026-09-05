@@ -42,7 +42,7 @@ export function injectKeyUp(vkCode: number): boolean {
   try {
     return SendInput(1, input, koffi.sizeof(INPUT)) === 1;
   } catch (e) {
-    console.error('SendInput failed:', e.message);
+    console.error('SendInput failed:', String(e));
     return false;
   }
 }
@@ -59,7 +59,7 @@ export function getRepeatDelay(): number | null {
     if (!SystemParametersInfoW(SPI_GETKEYBOARDDELAY, 0, buf, 0)) return null;
     return KEYBOARD_DELAY_MS[buf.readUInt32LE(0)] || null;
   } catch (e) {
-    console.error('SPI_GETKEYBOARDDELAY failed:', e.message);
+    console.error('SPI_GETKEYBOARDDELAY failed:', String(e));
     return null;
   }
 }

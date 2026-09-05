@@ -28,11 +28,6 @@ const api: ElectronAPI = {
   // Request window resize (called by statusbar on content change)
   resizeWindow: (width, height) => {
     ipcRenderer.send('resize-window', { width, height });
-  },
-
-  // Remove listeners (cleanup helper)
-  removeAllListeners: (channel) => {
-    ipcRenderer.removeAllListeners(channel);
   }
 };
 

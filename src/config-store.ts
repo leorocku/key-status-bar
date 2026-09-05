@@ -43,7 +43,7 @@ function saveConfig(): void {
   try {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
   } catch (e) {
-    console.error('Failed to save config:', e.message);
+    console.error('Failed to save config:', String(e));
   }
 }
 
