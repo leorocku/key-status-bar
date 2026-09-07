@@ -65,14 +65,3 @@ html, body {
   -webkit-app-region: no-drag;
 }
 
-.key-block-flash {
-  /* 固定高亮色，不受配置颜色影响，确保用户一眼看到强制释放 */
-  background-color: #d9463e;
-  color: #ffffff;
-  animation: release-flash 0.4s ease-in-out infinite alternate;
-}
-
-@keyframes release-flash {
-  from { opacity: 1; }
-  to { opacity: 0.35; }
-}

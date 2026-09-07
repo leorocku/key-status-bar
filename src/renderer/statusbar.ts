@@ -6,9 +6,6 @@
   const keyBlocks = document.getElementById('key-blocks')!;
   const container = document.getElementById('statusbar-container')!;
 
-  let currentKeys: PressedKey[] = [];
-  let currentConfig: Config | null = null;
-
   function clampByte(value: number): number {
     const number = Number(value);
     if (!Number.isFinite(number)) return 0;
@@ -33,7 +30,6 @@
 
   function applyConfig(config: Config): void {
     const root = document.documentElement;
-    currentConfig = config;
 
     root.style.setProperty('--sb-width', config.width + 'px');
     root.style.setProperty('--sb-font-size', config.fontSize + 'pt');
@@ -47,11 +43,9 @@
   }
 
   function renderKeys(keys: PressedKey[]): void {
-    currentKeys = keys;
-    // 只清除普通键块；正在闪烁的强制释放幽灵块保留到超时自毁
-    keyBlocks.querySelectorAll('.key-block:not(.key-block-flash)').forEach((el) => el.remove());
+    keyBlocks.querySelectorAll('.key-block').forEach((el) => el.remove());
 
-    keyBlocks.style.display = keys.length > 0 || keyBlocks.childElementCount > 0 ? 'flex' : 'none';
+    keyBlocks.style.display = keys.length > 0 ? 'flex' : 'none';
 
     keys.forEach((key) => {
       const span = document.createElement('span');
@@ -59,17 +53,6 @@
       span.textContent = key.text;
       keyBlocks.appendChild(span);
     });
-  }
-
-  function showForceRelease(info: ForceReleaseInfo): void {
-    const ghost = document.createElement('span');
-    ghost.className = 'key-block key-block-flash';
-    ghost.textContent = info.text;
-    keyBlocks.appendChild(ghost);
-    keyBlocks.style.display = 'flex';
-
-    const duration = ((currentConfig && currentConfig.releaseFlashDuration) || 2) * 1000;
-    setTimeout(() => ghost.remove(), duration);
   }
 
   function updateCaps(capsOn: boolean): void {
@@ -81,7 +64,6 @@
   async function init(): Promise<void> {
     const config = await window.electronAPI.getConfig();
     applyConfig(config);
-    renderKeys(currentKeys);
 
     // Keep the window sized to the visible container. ResizeObserver fires after
     // layout settles, so measurements are always current, avoiding stale sizes
@@ -95,10 +77,6 @@
 
     window.electronAPI.onCapsUpdate((capsOn) => {
       updateCaps(capsOn);
-    });
-
-    window.electronAPI.onForceRelease((info) => {
-      showForceRelease(info);
     });
 
     window.electronAPI.onConfigChange((newConfig) => {

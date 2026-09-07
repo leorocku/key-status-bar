@@ -1,23 +1,16 @@
 // main.ts
 //
-// Electron 入口。全部应用状态（窗口、托盘、按键 Map、自动纠错实例）集中在
+// Electron 入口。全部应用状态（窗口、托盘、按键 Map）集中在
 // 本模块——应用规模小，单点持有状态比分散管理更简单可靠。
 //
 // 数据流：keyboard-hook 回调 → onKeyEvent → pressedKeys Map →
 // IPC 'keys-update' → 状态条渲染。配置变更走 config-store 的 'change' 事件
 // 广播到状态条并重建托盘菜单。
-//
-// 生命周期顺序是纠错正确性的一部分（AGENTS.md 已知陷阱 7/8）：
-// whenReady 内必须先做启动清理（释放存量卡住的键）、再建窗装钩——顺序颠倒
-// 会让注入的 key-up 回流进自己的钩子形成反馈。注入事件在 onKeyEvent 用
-// isInjected 分流：只同步显示、不参与自动纠错计时（ADR-0001）。
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen } from 'electron';
 import path from 'path';
 import { createConfigStore, getConfig, setConfig, onConfigChange, flushSave } from './config-store';
-import { createKeyboardHook, injectKeyUp, isKeyHeld, getRepeatDelay } from './keyboard-hook';
+import { createKeyboardHook } from './keyboard-hook';
 import type { KeyboardHook } from './keyboard-hook';
-import { createAutoCorrect } from './auto-correct';
-import type { AutoCorrect } from './auto-correct';
 import { getKeyDisplay } from './keymap';
 
 // --- State ---
@@ -27,8 +20,6 @@ let tray: Tray | null = null;
 let keyboardHook: KeyboardHook | null = null;
 let pressedKeys = new Map<number, PressedKey>();   // vkCode -> { text, isModifier, order }
 let keyOrderCounter = 0;
-let autoCorrect: AutoCorrect | null = null;
-let repeatDelayMs = 1000; // 重复延迟，启动时读一次；读不到用默认值
 
 // --- Tray Icon Generation ---
 function createTrayIconImage(): Electron.NativeImage {
@@ -211,14 +202,6 @@ function updateTrayMenu(): void {
       label: '配置面板...',
       click: () => createConfigWindow(),
     },
-    {
-      label: '自动纠错',
-      type: 'checkbox',
-      checked: config.autoCorrectEnabled,
-      click: (menuItem) => {
-        setConfig('autoCorrectEnabled', menuItem.checked);
-      },
-    },
     { type: 'separator' },
     {
       label: '退出',
@@ -267,20 +250,8 @@ function getSortedKeys(): PressedKey[] {
   return [...modifiers, ...chars];
 }
 
-function forceReleaseKey(vkCode: number): void {
-  if (!injectKeyUp(vkCode)) return;
-  // 通知状态条做释放闪烁；注入的 key-up 稍后经钩子回流清除按键块
-  if (statusBarWindow && !statusBarWindow.isDestroyed()) {
-    const entry = pressedKeys.get(vkCode);
-    statusBarWindow.webContents.send('force-release', {
-      vkCode,
-      text: entry ? entry.text : getKeyDisplay(vkCode, 0).text,
-    });
-  }
-}
-
 function onKeyEvent(event: KeyEventInfo): void {
-  const { vkCode, isKeyDown, charCode, isInjected } = event;
+  const { vkCode, isKeyDown, charCode } = event;
   const display = getKeyDisplay(vkCode, charCode);
 
   if (isKeyDown) {
@@ -291,12 +262,8 @@ function onKeyEvent(event: KeyEventInfo): void {
         order: keyOrderCounter++,
       });
     }
-    // 注入事件只同步显示，不参与计时（ADR-0001）；
-    // autoCorrect 守卫恒真（钩子在初始化后才启动），仅为类型收窄
-    if (!isInjected && autoCorrect) autoCorrect.keyDown(vkCode);
   } else {
     pressedKeys.delete(vkCode);
-    if (autoCorrect) autoCorrect.keyUp(vkCode);
   }
 
   // Push updated key list to status bar
@@ -313,25 +280,11 @@ app.whenReady().then(() => {
   // Create system tray
   createTray();
 
-  // 启动清理（Q4-B）：先于建窗与装钩——释放确实被按住的键，存量卡键当场解除。
-  // 此时钩子未装，注入的 up 不会回流进自己的事件处理。
-  for (let vk = 0; vk < 256; vk++) {
-    if (isKeyHeld(vk)) injectKeyUp(vk);
-  }
-
   // Create status bar if visible
   const config = getConfig();
   if (config.statusBarVisible) {
     createStatusBarWindow();
   }
-
-  // 自动纠错：重复延迟启动时读一次（Q6），乘数每次计时启动时读配置
-  repeatDelayMs = getRepeatDelay() || 1000;
-  autoCorrect = createAutoCorrect({
-    getDelay: () => getConfig().autoCorrectMultiplier * repeatDelayMs,
-    onForceRelease: forceReleaseKey,
-    enabled: config.autoCorrectEnabled,
-  });
 
   // Start global keyboard hook
   keyboardHook = createKeyboardHook(onKeyEvent, {
@@ -349,7 +302,6 @@ app.whenReady().then(() => {
       statusBarWindow.webContents.send('config-changed', newConfig);
     }
     updateTrayMenu();
-    if (autoCorrect) autoCorrect.setEnabled(newConfig.autoCorrectEnabled);
   });
 });
 

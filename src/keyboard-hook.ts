@@ -23,60 +23,8 @@ const WM_SYSKEYUP = 0x0105;
 const MAPVK_VK_TO_CHAR = 2;
 const PM_REMOVE = 1;
 const VK_CAPITAL = 0x14;
-const LLKHF_INJECTED = 0x10;
-const KEYEVENTF_KEYUP = 0x0002;
-const INPUT_KEYBOARD = 1;
-const SPI_GETKEYBOARDDELAY = 22;
-// 注册表 KeyboardDelay 档位 0/1/2/3 → 毫秒
-const KEYBOARD_DELAY_MS = [250, 500, 750, 1000];
 
-// --- 模块级 Win32 绑定：注入与查询（不依赖钩子实例）---
 const user32 = koffi.load('user32.dll');
-
-const KEYINPUT = koffi.struct('KEYINPUT', {
-  wVk: 'uint16', wScan: 'uint16', dwFlags: 'uint32', time: 'uint32', dwExtraInfo: 'uintptr_t',
-});
-const MOUSEINPUT = koffi.struct('MOUSEINPUT', {
-  dx: 'int32', dy: 'int32', mouseData: 'uint32', dwFlags: 'uint32', time: 'uint32', dwExtraInfo: 'uintptr_t',
-});
-const HARDWAREINPUT = koffi.struct('HARDWAREINPUT', { uMsg: 'uint32', wParamL: 'uint16', wParamH: 'uint16' });
-const INPUTUNION = koffi.union('INPUTUNION', { mi: MOUSEINPUT, ki: KEYINPUT, hi: HARDWAREINPUT });
-const INPUT = koffi.struct('INPUT', { type: 'uint32', u: INPUTUNION });
-
-const SendInput = user32.func('SendInput', 'uint32', ['uint32', koffi.pointer(INPUT), 'int32']);
-const GetAsyncKeyState = user32.func('GetAsyncKeyState', 'int16', ['int32']);
-const SystemParametersInfoW = user32.func('SystemParametersInfoW', 'bool', ['uint32', 'uint32', 'void *', 'uint32']);
-
-/** 注入一个 key-up 事件（自动纠错的强制释放）。返回是否注入成功。 */
-export function injectKeyUp(vkCode: number): boolean {
-  const input = {
-    type: INPUT_KEYBOARD,
-    u: { ki: { wVk: vkCode, wScan: 0, dwFlags: KEYEVENTF_KEYUP, time: 0, dwExtraInfo: 0 } },
-  };
-  try {
-    return SendInput(1, input, koffi.sizeof(INPUT)) === 1;
-  } catch (e) {
-    console.error('SendInput failed:', String(e));
-    return false;
-  }
-}
-
-/** 查询某虚拟键当前是否处于按下状态（供启动清理）。 */
-export function isKeyHeld(vkCode: number): boolean {
-  return (GetAsyncKeyState(vkCode) & 0x8000) !== 0;
-}
-
-/** 读系统重复延迟（毫秒）。失败返回 null，由调用方决定默认值。 */
-export function getRepeatDelay(): number | null {
-  try {
-    const buf = Buffer.alloc(4);
-    if (!SystemParametersInfoW(SPI_GETKEYBOARDDELAY, 0, buf, 0)) return null;
-    return KEYBOARD_DELAY_MS[buf.readUInt32LE(0)] || null;
-  } catch (e) {
-    console.error('SPI_GETKEYBOARDDELAY failed:', String(e));
-    return null;
-  }
-}
 
 export interface KeyboardHook {
   start(): void;
@@ -168,8 +116,7 @@ export function createKeyboardHook(
               vkCode: ks.vkCode,
               scanCode: ks.scanCode,
               isKeyDown,
-              charCode: charCode & 0xFFFF,
-              isInjected: (ks.flags & LLKHF_INJECTED) !== 0
+              charCode: charCode & 0xFFFF
             });
 
             // Check Caps Lock toggle on key-up of VK_CAPITAL

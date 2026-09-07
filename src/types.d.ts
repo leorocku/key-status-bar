@@ -29,9 +29,6 @@ interface Config {
   width: number;
   statusBarVisible: boolean;
   windowPosition: WindowPosition | null;
-  autoCorrectEnabled: boolean;
-  autoCorrectMultiplier: number;
-  releaseFlashDuration: number;
 }
 
 type ConfigKey = keyof Config;
@@ -56,13 +53,6 @@ interface KeyEventInfo {
   scanCode: number;
   isKeyDown: boolean;
   charCode: number;
-  isInjected: boolean;
-}
-
-/** 'force-release' IPC 载荷：状态条做释放闪烁。 */
-interface ForceReleaseInfo {
-  vkCode: number;
-  text: string;
 }
 
 /** 'resize-window' IPC 载荷：状态条请求窗口尺寸。 */
@@ -78,7 +68,6 @@ interface ElectronAPI {
   onKeysUpdate(callback: (keys: PressedKey[]) => void): void;
   onConfigChange(callback: (config: Config) => void): void;
   onCapsUpdate(callback: (capsOn: boolean) => void): void;
-  onForceRelease(callback: (info: ForceReleaseInfo) => void): void;
   resizeWindow(width: number, height: number): void;
 }
 

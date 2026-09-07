@@ -35,19 +35,6 @@ Win32 键盘事件
 
 配置流：`src/renderer/config.ts` → `window.electronAPI.setConfig(key, value)` → `src/config-store.ts`（3s debounce 落盘 + EventEmitter 'change'）→ main 广播 `'config-changed'` 到状态条 + 重建托盘菜单。
 
-纠错流（语义以 `CONTEXT.md` 领域词汇表为准，决策与证据在 `docs/adr/`）：
-
-```
-非注入 keyDown → src/auto-correct.ts 启动按键按下计时（一次性：仅全新按下启动，重复不刷新；
-  修饰键全新按下触发连击续期：同步所有已按下修饰键的计时）
-  → 超时 = 重复延迟 × 释放乘数 → src/main.ts forceReleaseKey
-  → src/keyboard-hook.ts injectKeyUp (SendInput KEYEVENTF_KEYUP) 解除卡键
-  → 状态条收 'force-release' 做释放闪烁
-启动清理：建窗装钩之前，查询全部按键状态，释放确实被按住的键
-```
-
-注入事件会经 `LLKHF_INJECTED` 标志回流进钩子，只同步显示、不参与计时（ADR-0001）。
-
 ### IPC 通道（字符串字面量；载荷类型定义在 `src/types.d.ts`）
 
 | 通道 | 方向 | 方式 | 载荷 |
@@ -58,7 +45,6 @@ Win32 键盘事件
 | `keys-update` | main→renderer | send | 排序后的按键数组 |
 | `config-changed` | main→renderer | send | 完整 config |
 | `caps-update` | main→renderer | send | boolean |
-| `force-release` | main→renderer | send | `{ vkCode, text }`，状态条做释放闪烁 |
 
 **新增 IPC 通道必须同时改三处**：`src/main.ts`（handler）、`src/preload.ts`（`window.electronAPI` 白名单）、对应 renderer 脚本。载荷形状必须同步更新 `src/types.d.ts`。preload 是唯一桥，renderer 永远不直接接触 `ipcRenderer`。
 
@@ -77,8 +63,7 @@ Win32 键盘事件
 /src                 TypeScript 源码（编译到 /build）
 ├── main.ts          Electron 入口，窗口/托盘/生命周期/按键状态机（全部应用状态在此）
 ├── preload.ts       contextBridge → window.electronAPI（IPC 白名单唯一出口）
-├── keyboard-hook.ts koffi FFI + Win32 钩子封装 + 注入/查询（SendInput / GetAsyncKeyState / SPI_GETKEYBOARDDELAY）
-├── auto-correct.ts  自动纠错纯逻辑（一次性按键按下计时 + 修饰键连击续期），无 electron/Win32 依赖
+├── keyboard-hook.ts koffi FFI + Win32 钩子封装（SetWindowsHookExW + PeekMessageW 消息泵）
 ├── keymap.ts        纯函数 vkCode → { text, isModifier }
 ├── config-store.ts  JSON 配置持久化（userData 目录，3s debounce）
 ├── types.d.ts       全局 ambient 类型：IPC 契约与配置形状的唯一来源（见 ADR-0004）
@@ -88,7 +73,7 @@ Win32 键盘事件
 /tests               node --test 单元测试（JS，测编译产物，不打包）
 /scripts             copy-assets.js（构建辅助）
 /docs/adr/           架构决策记录
-/CONTEXT.md          领域词汇表（自动纠错语义的权威定义）
+/CONTEXT.md          领域词汇表（硬件故障与显示语义的权威定义）
 ```
 
 ## Development Commands
@@ -107,7 +92,7 @@ npm start
 npm run build
 ```
 
-验证方式：`npm test`（27 用例）之外手动冒烟——`npm start` 后：按任意组合键确认状态条渲染与 `CAPS ON/OFF`；**按住任意键超过自动释放延迟**（默认 = 系统重复延迟 × 0.5），状态条该键块应变红闪烁后消失、持续输入停止；托盘菜单确认"自动纠错"开关可关（关闭后按住不再被释放）；配置面板两个新滑动条（自动释放乘数 0.1–1、释放闪烁时长 1–5 秒）即时生效。
+验证方式：`npm test`（17 用例）之外手动冒烟——`npm start` 后：按任意组合键确认状态条渲染与 `CAPS ON/OFF`，松开后键块消失；配置面板滑动条/颜色即时生效；托盘菜单可隐藏状态条、开配置面板、退出。
 
 ## Code Conventions & Common Patterns
 
@@ -129,26 +114,22 @@ npm run build
 3. **落盘是 3s debounce**：退出前靠 `will-quit` 里的 `flushSave()`；砍掉它用户最后 3 秒的配置会丢。
 4. **钩子安装失败仅 `console.error`**，应用照常运行但无按键显示——调试“没反应”先看主进程日志。
 5. **未知按键**回退显示 `Key` + 十六进制 vkCode，且 `isModifier: true`（会排在前面）。
-6. **自动纠错计时是一次性的**（ADR-0002）：仅全新按下启动，重复 down 不刷新——不要"修复"成重复刷新，否则释放丢失型卡键（最常见故障）永远不会被强制释放。修饰键连击续期语义见 `CONTEXT.md`，注意它把计时**同步**到"最新全新按下时刻 + 延迟"，不是各自推迟。
-7. **注入事件不参与计时**：`src/main.ts onKeyEvent` 用 `isInjected` 分流，改事件路由必须保留，否则注入的 up 与自己的计时形成反馈循环。
-8. **启动清理的顺序**：查询并释放存量按键必须发生在建窗与装钩之前（`src/main.ts whenReady` 内），否则注入 up 回流进自己的钩子、存量卡键还会闪现一下。
-9. **`flushSave()` 有 `configPath` 守卫**：第二实例退出路径会在 `createConfigStore()` 之前触发 `will-quit`。
+6. **`flushSave()` 有 `configPath` 守卫**：第二实例退出路径会在 `createConfigStore()` 之前触发 `will-quit`。
 
 ## Important Files
 
 | 文件 | 角色 |
 |---|---|
-| `src/main.ts` | 入口；窗口创建、托盘、按键状态机、自动纠错接线、生命周期（`whenReady`/`will-quit`/单实例锁） |
-| `src/preload.ts` | `window.electronAPI` 全部 7 个方法；IPC 白名单唯一出口 |
-| `src/keyboard-hook.ts` | koffi/Win32 全部细节隔离在此；另导出 `injectKeyUp` / `isKeyHeld` / `getRepeatDelay`（模块级 Win32 绑定） |
-| `src/auto-correct.ts` | 自动纠错纯逻辑（一次性计时、修饰键连击续期、启停），计时器可注入、可单测 |
+| `src/main.ts` | 入口；窗口创建、托盘、按键状态机、生命周期（`whenReady`/`will-quit`/单实例锁） |
+| `src/preload.ts` | `window.electronAPI` 全部 6 个方法；IPC 白名单唯一出口 |
+| `src/keyboard-hook.ts` | koffi/Win32 全部细节隔离在此（钩子安装/消息泵/Caps 检测） |
 | `src/keymap.ts` | `getKeyDisplay(vkCode, charCode)`，六级优先链（控制键名 → 小键盘运算符 → 小键盘数字 → 硬编码字符表 → charCode 兜底 → `Key`+hex） |
-| `src/config-store.ts` | `DEFAULT_CONFIG`（唯一配置 schema，含 `autoCorrectEnabled` / `autoCorrectMultiplier` / `releaseFlashDuration`）、`getConfig/setConfig/onConfigChange/flushSave` |
+| `src/config-store.ts` | `DEFAULT_CONFIG`（唯一配置 schema）、`getConfig/setConfig/onConfigChange/flushSave` |
 | `src/types.d.ts` | 全局 ambient 类型：`Config`、`ElectronAPI`、`PressedKey`、`KeyEventInfo` 等（见 ADR-0004） |
-| `src/renderer/statusbar.ts` / `config.ts` | 两个窗口的全部逻辑（含释放闪烁幽灵块、两个新滑动条） |
+| `src/renderer/statusbar.ts` / `config.ts` | 两个窗口的全部逻辑 |
 | `package.json` | scripts + 内嵌 electron-builder 配置（见下） |
 | `start.bat` | 运行入口；缺 electron 时其报错信息是唯一的"安装文档" |
-| `CONTEXT.md` / `docs/adr/` | 领域词汇表与决策记录；改自动纠错语义前先读 |
+| `CONTEXT.md` / `docs/adr/` | 领域词汇表与决策记录 |
 
 **打包白名单**：`package.json` 的 `build.files` 现为 `["build/**/*"]`，自动覆盖所有编译产物与复制的静态资产。新增源码放 `src/`，无需手动加白名单。
 
@@ -163,6 +144,6 @@ npm run build
 
 ## Testing & QA
 
-**测试**：内置 `node --test`，零新增依赖，`npm test` 即可（27 用例）。`tests/auto-correct.test.js` 用带时间轴的假时钟验证一次性计时、续期同步语义、续期门闩（防无限续命）、启停与修饰键判定；`tests/keymap.test.js` 覆盖 `getKeyDisplay` 六级优先链与各层 `isModifier` 契约；`tests/config-store.test.js` 用 `require.cache` 注入假 `electron` 模块 + 临时目录做真实磁盘往返（默认值、合并、损坏回落、未知 key 拒绝、`flushSave` 持久化）。无 lint、无 CI，其余验证靠 `npm start` 手动冒烟。
+**测试**：内置 `node --test`，零新增依赖，`npm test` 即可（17 用例）。`tests/keymap.test.js` 覆盖 `getKeyDisplay` 六级优先链与各层 `isModifier` 契约；`tests/config-store.test.js` 用 `require.cache` 注入假 `electron` 模块 + 临时目录做真实磁盘往返（默认值、合并、损坏回落、未知 key 拒绝、`flushSave` 持久化）。无 lint、无 CI，其余验证靠 `npm start` 手动冒烟。
 
 新增测试放 `tests/*.test.js`，用 `node --test` + `node:assert/strict`（`test` script 已配好，先编译再跑）；`tests/` 不在 `build.files` 白名单，不会进安装包。`src/keyboard-hook.ts` 依赖 Windows GUI 会话与全局钩子权限，不纳入单测。

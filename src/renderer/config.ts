@@ -135,13 +135,6 @@
     inputById('statusBarBgAlpha').value = String(alphaPercent);
     updateValueDisplay('statusBarBgAlpha', alphaPercent, '%');
 
-    const multiplierPercent = Math.round(config.autoCorrectMultiplier * 100);
-    inputById('autoCorrectMultiplier').value = String(multiplierPercent);
-    updateValueDisplay('autoCorrectMultiplier', multiplierPercent, '%');
-
-    inputById('releaseFlashDuration').value = String(config.releaseFlashDuration);
-    updateValueDisplay('releaseFlashDuration', config.releaseFlashDuration, '秒');
-
     (Object.keys(COLOR_FIELDS) as ColorFieldKey[]).forEach((key) => writeColor(key, config[key]));
   }
 
@@ -156,18 +149,6 @@
       const value = Math.max(0, Math.min(100, Number(inputById('statusBarBgAlpha').value)));
       updateValueDisplay('statusBarBgAlpha', value, '%');
       debounce('statusBarBgAlpha', value / 100, 120);
-    });
-
-    inputById('autoCorrectMultiplier').addEventListener('input', () => {
-      const value = Math.max(10, Math.min(100, Number(inputById('autoCorrectMultiplier').value)));
-      updateValueDisplay('autoCorrectMultiplier', value, '%');
-      debounce('autoCorrectMultiplier', value / 100, 120);
-    });
-
-    inputById('releaseFlashDuration').addEventListener('input', () => {
-      const value = Math.max(1, Math.min(5, Math.round(Number(inputById('releaseFlashDuration').value))));
-      updateValueDisplay('releaseFlashDuration', value, '秒');
-      debounce('releaseFlashDuration', value, 120);
     });
 
     (['blockSpacing', 'padding', 'borderWidth'] as ConfigKey[]).forEach((key) => {

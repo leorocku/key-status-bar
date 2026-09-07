@@ -5,8 +5,7 @@
 // 无 electron / Win32 依赖，可独立单测（tests/keymap.test.js）。
 //
 // isModifier 决定排序（修饰键在前）而非语义分类——未知键回退也标 true 以排在
-// 前排，宁可错排不可漏显。真正的修饰键集合（用于自动纠错续期判定）在
-// auto-correct.ts 的 MODIFIER_VKS，两者职责不同，不要合并。
+// 前排，宁可错排不可漏显。
 // Virtual Key Code constants (subset of WinUser.h)
 const VK_BACK = 0x08, VK_TAB = 0x09, VK_RETURN = 0x0D;
 const VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12;

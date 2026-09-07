@@ -26,9 +26,6 @@ export const DEFAULT_CONFIG: Config = {
   width: 400,
   statusBarVisible: true,
   windowPosition: null,
-  autoCorrectEnabled: true,
-  autoCorrectMultiplier: 0.5,
-  releaseFlashDuration: 2
 };
 
 let config: Config = { ...DEFAULT_CONFIG };
