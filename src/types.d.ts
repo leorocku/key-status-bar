@@ -45,6 +45,8 @@ interface KeyDisplay {
 /** main.js pressedKeys 中保存的按键条目（含按下顺序）。 */
 interface PressedKey extends KeyDisplay {
   order: number;
+  /** 主机侧自动重复已开始（连续 2 个重复 down），状态条对该键块做闪烁 */
+  isRepeating: boolean;
 }
 
 /** keyboard-hook 回调收到的原始按键事件。 */

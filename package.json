@@ -25,7 +25,11 @@
     },
     "files": [
       "build/**/*"
-    ]
+    ],
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "publish": null
   },
   "dependencies": {
     "koffi": "3.0.2",

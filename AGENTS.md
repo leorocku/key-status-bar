@@ -29,8 +29,9 @@ Win32 键盘事件
   → src/keyboard-hook.ts (koffi: SetWindowsHookExW + PeekMessageW 消息泵, 10ms setInterval)
   → cb({ vkCode, scanCode, isKeyDown, charCode })
   → src/main.ts onKeyEvent → pressedKeys: Map<vkCode, PressedKey>
+    （键已按下又收到 down = 重复 down：连续 2 个置 isRepeating，key-up 归零）
   → getSortedKeys()（修饰键在前，各自按按下顺序）
-  → IPC 'keys-update' → src/renderer/statusbar.ts 重建 span.key-block
+  → IPC 'keys-update' → src/renderer/statusbar.ts 重建 span.key-block（isRepeating 加闪烁 class）
 ```
 
 配置流：`src/renderer/config.ts` → `window.electronAPI.setConfig(key, value)` → `src/config-store.ts`（3s debounce 落盘 + EventEmitter 'change'）→ main 广播 `'config-changed'` 到状态条 + 重建托盘菜单。
@@ -92,7 +93,7 @@ npm start
 npm run build
 ```
 
-验证方式：`npm test`（17 用例）之外手动冒烟——`npm start` 后：按任意组合键确认状态条渲染与 `CAPS ON/OFF`，松开后键块消失；配置面板滑动条/颜色即时生效；托盘菜单可隐藏状态条、开配置面板、退出。
+验证方式：`npm test`（17 用例）之外手动冒烟——`npm start` 后：按任意组合键确认状态条渲染与 `CAPS ON/OFF`，松开后键块消失；**按住任意键超过系统重复延迟**（约 0.75s），该键块应变红闪烁（主机自动重复进行中），松开即灭；配置面板滑动条/颜色即时生效；托盘菜单可隐藏状态条、开配置面板、退出。
 
 ## Code Conventions & Common Patterns
 

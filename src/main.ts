@@ -20,6 +20,8 @@ let tray: Tray | null = null;
 let keyboardHook: KeyboardHook | null = null;
 let pressedKeys = new Map<number, PressedKey>();   // vkCode -> { text, isModifier, order }
 let keyOrderCounter = 0;
+// 每键连续重复 down 计数：满 2 才点亮闪烁，免疫信号解析错误的单个杂散 down；key-up 归零
+const repeatCounts = new Map<number, number>();
 
 // --- Tray Icon Generation ---
 function createTrayIconImage(): Electron.NativeImage {
@@ -255,15 +257,24 @@ function onKeyEvent(event: KeyEventInfo): void {
   const display = getKeyDisplay(vkCode, charCode);
 
   if (isKeyDown) {
-    if (!pressedKeys.has(vkCode)) {
+    const entry = pressedKeys.get(vkCode);
+    if (!entry) {
       pressedKeys.set(vkCode, {
         text: display.text,
         isModifier: display.isModifier,
         order: keyOrderCounter++,
+        isRepeating: false,
       });
+      repeatCounts.set(vkCode, 0);
+    } else {
+      // 键已按下又收到 down：主机自动重复（真实长按或卡键/幻影重放进入 typematic）
+      const count = (repeatCounts.get(vkCode) || 0) + 1;
+      repeatCounts.set(vkCode, count);
+      if (count >= 2) entry.isRepeating = true;
     }
   } else {
     pressedKeys.delete(vkCode);
+    repeatCounts.delete(vkCode);
   }
 
   // Push updated key list to status bar

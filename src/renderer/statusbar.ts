@@ -49,7 +49,7 @@
 
     keys.forEach((key) => {
       const span = document.createElement('span');
-      span.className = 'key-block';
+      span.className = key.isRepeating ? 'key-block key-block-repeat' : 'key-block';
       span.textContent = key.text;
       keyBlocks.appendChild(span);
     });
